@@ -41,4 +41,6 @@ include 'learn-demos:learn-ioc'
 findProject(':learn-demos:learn-ioc')?.name = 'learn-ioc'
 include 'learn-demos:learn-aop'
 findProject(':learn-demos:learn-aop')?.name = 'learn-aop'
+include 'learn-demos:mimic-spring-mybatis'
+findProject(':learn-demos:mimic-spring-mybatis')?.name = 'mimic-spring-mybatis'
 
