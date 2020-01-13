@@ -43,4 +43,6 @@ include 'learn-demos:learn-aop'
 findProject(':learn-demos:learn-aop')?.name = 'learn-aop'
 include 'learn-demos:mimic-spring-mybatis'
 findProject(':learn-demos:mimic-spring-mybatis')?.name = 'mimic-spring-mybatis'
+include 'learn-demos:learn-aop:learn-proxy-pattern'
+findProject(':learn-demos:learn-aop:learn-proxy-pattern')?.name = 'learn-proxy-pattern'
 
