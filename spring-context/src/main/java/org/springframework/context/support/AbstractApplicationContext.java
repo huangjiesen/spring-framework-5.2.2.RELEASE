@@ -516,16 +516,21 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
 			// Prepare this context for refreshing.
+            // 刷新上下文前的预备工作，如：设置启动时间，激活标识，初始化属性源(property source)配置
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
+            // 告诉子类刷新内部bean工厂。
+            // 返回beanFactory  ->  为何要返回，因为在父类GenericApplicationContext定义的beanFactory修饰符是private
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
+            // 使用工厂前的一些准备工作，如:设置上下文的类加载器和后置处理器到这工厂对象中
 			prepareBeanFactory(beanFactory);
 
 			try {
 				// Allows post-processing of the bean factory in context subclasses.
+                // 这是个空实现的预留方法，如GenericWebApplicationContext就有实现，做一些beanFactory初始化的扩展
 				postProcessBeanFactory(beanFactory);
 
 				// Invoke factory processors registered as beans in the context.
@@ -645,12 +650,18 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 		// Tell the internal bean factory to use the context's class loader etc.
+        // 让beanFactory共用上下文的类加载器
 		beanFactory.setBeanClassLoader(getClassLoader());
+		// 设置bean表达式解析器
 		beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));
+		// 设置一个编辑Property的注册器 -> 未深究，这个注册器应该是用于保存 解析各种资源属性的对象  如解析Date,Array类型的资源属性
 		beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));
 
 		// Configure the bean factory with context callbacks.
+        // 添加一个处理各咱Aware回调的bean后置处理器 -> 实现些各种'*Aware'接口的bean就是通过这个后置处理器的回调获取到各种对象的
 		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+		// ignoreDependencyInterface的作用，default-autowire="byType" 自动装配时忽烈的接口列表
+        // 这些接口的settter方法在子类的实现会被忽略自动注入，但子类的其它setter方法不会被忽略
 		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
 		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
 		beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
@@ -666,6 +677,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.registerResolvableDependency(ApplicationContext.class, this);
 
 		// Register early post-processor for detecting inner beans as ApplicationListeners.
+        // 该bean后置处理器，检测实现了ApplicationListener的bean，在它们创建时初始化之后，将它们添加到应用上下文的事件多播器上；
+        // 并在这些bean销毁之前，将它们从应用上下文的事件多播器上移除。
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
 		// Detect a LoadTimeWeaver and prepare for weaving, if found.
