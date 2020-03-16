@@ -65,7 +65,7 @@ org.springframework.context.annotation.AnnotationConfigApplicationContext.Annota
     > 在创建注释读取器时`this.reader=new AnnotatedBeanDefinitionReader(this);`手动将其BeanDefinition加到工厂中<br/>
     > 该类实现了`BeanDefinitionRegistryPostProcessor`接口，在spring刷新上下文时会被回调<br/>
     > 完成对工厂中加了`@Configuration`注解的所有`AnnotatedBeanDefinition`类进行解析，并转成`BeanDefinition`<br/>
-    > *简单说就是解析加了`@Configuration`注解的配置类。如将`@Bean`方法或`@Import`中的类,`@ComponentScans,@ComponentScan`注解路径下加了`@Component`的类 转成`BeanDefinition`。将`@ImportResource`注解中指定的配置的bean配置中的类转成`BeanDefinition`<br/>*
+    > *简单说就是解析加了`@Configuration`注解的配置类。如将`@Bean`方法或`@Import`中的类,`@ComponentScans,@ComponentScan`注解路径下加了`@Component`的类 转成`BeanDefinition`。将`@ImportResource`注解中指定的资源配置的bean配置中的类转成`BeanDefinition`*
     
 
 
