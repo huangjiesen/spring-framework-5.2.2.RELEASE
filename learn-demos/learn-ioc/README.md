@@ -26,7 +26,9 @@ spring实现IOC的思路大致可以拆分成3点
        * this.reader = new AnnotatedBeanDefinitionReader(this);
        * this.scanner = new ClassPathBeanDefinitionScanner(this);
        
-    *
+    
+    
+    
 # AnnotationConfigApplicationContext初始化调用链
 ```   
 org.springframework.context.annotation.AnnotationConfigApplicationContext.AnnotationConfigApplicationContext(java.lang.Class<?>...)
@@ -55,6 +57,12 @@ org.springframework.context.annotation.AnnotationConfigApplicationContext.Annota
     // 
     3. org.springframework.context.support.AbstractApplicationContext.refresh
 ```
+
+
+# spring初始化中的一些明星类
+
+    
+
 
     
     
