@@ -29,7 +29,7 @@ spring实现IOC的思路大致可以拆分成3点
     
     
     
-# AnnotationConfigApplicationContext初始化调用链
+# AnnotationConfigApplicationContext初始化重点调用链
 ```   
 org.springframework.context.annotation.AnnotationConfigApplicationContext.AnnotationConfigApplicationContext(java.lang.Class<?>...)
     // this(); 无参方法调用
@@ -60,7 +60,14 @@ org.springframework.context.annotation.AnnotationConfigApplicationContext.Annota
 
 
 # spring初始化中的一些明星类
-
+* ConfigurationClassPostProcessor
+    > spring 手动注册的6大类之一
+    > `spring`在创建注释器读取器时`this.reader = new AnnotatedBeanDefinitionReader(this);`手动将其BeanDefinition注册到工厂中
+    > 该类实现了`BeanDefinitionRegistryPostProcessor`接口，在spring刷新上下文时会被回调
+    > 完成对工厂中加了`@Configuration`注解的所有`AnnotatedBeanDefinition`类进行解析，并转成`BeanDefinition`
+    >    简单说就是解析加了`@Configuration`注解的配置类
+    >    如将`@Bean`方法或`@Import`中的类,`@ComponentScans,@ComponentScan`注解路径下加了`@Component`的类 转成`BeanDefinition`
+    >    将`@ImportResource`注解中指定的配置的bean配置中的类转成`BeanDefinition`
     
 
 
