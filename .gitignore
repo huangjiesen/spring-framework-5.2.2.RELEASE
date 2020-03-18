@@ -43,3 +43,5 @@ out
 test-output
 atlassian-ide-plugin.xml
 .gradletasknamecache
+
+learn-demos/src/main/java/com/ofwiki/MyTest.java
