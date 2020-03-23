@@ -75,7 +75,7 @@ org.springframework.context.annotation.AnnotationConfigApplicationContext.Annota
     > * 实现该接口可以获取到BeanDefinitionRegistrar对象，及加了@Configuration注解的配置类上所有注解元数据(AnnotationMetadata)信息
     > * 有了BeanDefinitionRegistrar就可以向工厂添加、修改、删除BeanDeinition
     > * 拿到的所有注解元数据中，包含了加在@Configuration配置类上的自定义注解，有了BeanDefinitionRegistrar对象，再根据自定义注解的值，可以动态的创建一些BeanDefinition添加到工厂中。如`Mybytis`的`MapperScannerRegistrar`就是扫描了`@MapperScan`注解指定包名下的接口，并创建了一些动态代理类的`BeanDefinition`加到工厂中
-
-
-    
+* ImportSelector
+    > * 可以干预beanFactory的建设,必须通过`@Import`注解注册到工厂中
+    > * `spring`初始化时`ConfigurationClassPostProcessor`会解析所有`@Import`注解中的类，随后会实例化所有`ImportSelector`的实现类，并回调接口方法。接口可以返回一组全类名，这些类型会被转成`BeanDefinition`加在工厂中
     
