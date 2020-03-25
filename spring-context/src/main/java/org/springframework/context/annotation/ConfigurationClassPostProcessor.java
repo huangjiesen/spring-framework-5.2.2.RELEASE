@@ -269,34 +269,40 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	 * {@link Configuration} classes.
 	 */
 	public void processConfigBeanDefinitions(BeanDefinitionRegistry registry) {
+	    // tips: 找到beanFactory中的所有配置类
 		List<BeanDefinitionHolder> configCandidates = new ArrayList<>();
-		String[] candidateNames = registry.getBeanDefinitionNames();
 
+		String[] candidateNames = registry.getBeanDefinitionNames();
 		for (String beanName : candidateNames) {
 			BeanDefinition beanDef = registry.getBeanDefinition(beanName);
+            // tips: 为true，表示已经添加到configCandidates集合中
 			if (beanDef.getAttribute(ConfigurationClassUtils.CONFIGURATION_CLASS_ATTRIBUTE) != null) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Bean definition has already been processed as a configuration class: " + beanDef);
 				}
 			}
+            // tips: 这是正常只能拿到手动注册的类，除非有手动添加的BeanDefinitionRegistryPostProcessor预先向beanFactory添加beanDefinition
+			//   如果是否为配置类，有@Configuration注解，或@Component,@ComponentScan,@Import,@ImportResource注解，或有加了@Bean注解的方法
 			else if (ConfigurationClassUtils.checkConfigurationClassCandidate(beanDef, this.metadataReaderFactory)) {
 				configCandidates.add(new BeanDefinitionHolder(beanDef, beanName));
 			}
 		}
 
-		// Return immediately if no @Configuration classes were found
+		// tips: Return immediately if no @Configuration classes were found
 		if (configCandidates.isEmpty()) {
 			return;
 		}
 
 		// Sort by previously determined @Order value, if applicable
+        // tips: 排序，添加了@Order则取值，未添加@Order则取Integer.MAX_VALUE
 		configCandidates.sort((bd1, bd2) -> {
 			int i1 = ConfigurationClassUtils.getOrder(bd1.getBeanDefinition());
 			int i2 = ConfigurationClassUtils.getOrder(bd2.getBeanDefinition());
 			return Integer.compare(i1, i2);
 		});
 
-		// Detect any custom bean name generation strategy supplied through the enclosing application context
+		// tips: Detect any custom bean name generation strategy supplied through the enclosing application context
+        //   从容器中获取默认的bean名生成器使用
 		SingletonBeanRegistry sbr = null;
 		if (registry instanceof SingletonBeanRegistry) {
 			sbr = (SingletonBeanRegistry) registry;
@@ -314,14 +320,18 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			this.environment = new StandardEnvironment();
 		}
 
-		// Parse each @Configuration class
+		// tips: Parse each @Configuration class
+        //  配置类解析器
 		ConfigurationClassParser parser = new ConfigurationClassParser(
 				this.metadataReaderFactory, this.problemReporter, this.environment,
 				this.resourceLoader, this.componentScanBeanNameGenerator, registry);
 
+		// tips: 待处理的配置类 - 集合
 		Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
+		// tips: 标记已经解析过的配置类 - 集合
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
 		do {
+		    // tips: 解析待处理的所有配置类
 			parser.parse(candidates);
 			parser.validate();
 

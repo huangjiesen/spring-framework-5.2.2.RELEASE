@@ -72,8 +72,17 @@ class ComponentScanAnnotationParser {
 		this.registry = registry;
 	}
 
-
+    /**
+     * 创建一个扫描器，根据注解{@link ComponentScan}扫描指定包. 把符合以下两种条件的class文件转成{@link BeanDefinitionHolder}返回<br/>
+     * <p>* 使用了{@link org.springframework.stereotype.Component}注解的类
+     * <p>* 类使用的注解，本身被{@link org.springframework.stereotype.Component}注解，如：@Configuration,@Controller,@Service,@Repository等，这些注解使用本身用有@Component注解
+     * @param componentScan
+     * @param declaringClass
+     * @return
+     */
 	public Set<BeanDefinitionHolder> parse(AnnotationAttributes componentScan, final String declaringClass) {
+        // tips: @ComponentScan的useDefaultFilters默认为true,会添加一个Include过虑器new AnnotationTypeFilter(Component.class)
+        //   只要类使用了@Component注解，或类使用的注解本身被@Component注解就符合条件
 		ClassPathBeanDefinitionScanner scanner = new ClassPathBeanDefinitionScanner(this.registry,
 				componentScan.getBoolean("useDefaultFilters"), this.environment, this.resourceLoader);
 
@@ -90,39 +99,46 @@ class ComponentScanAnnotationParser {
 			Class<? extends ScopeMetadataResolver> resolverClass = componentScan.getClass("scopeResolver");
 			scanner.setScopeMetadataResolver(BeanUtils.instantiateClass(resolverClass));
 		}
-
+        // tips: 默认 "**/*.class"
 		scanner.setResourcePattern(componentScan.getString("resourcePattern"));
 
+		// tips: 包含过滤器,调用判断前会先调用excludeFilters是否被过滤
 		for (AnnotationAttributes filter : componentScan.getAnnotationArray("includeFilters")) {
 			for (TypeFilter typeFilter : typeFiltersFor(filter)) {
 				scanner.addIncludeFilter(typeFilter);
 			}
 		}
+        // tips: 排除过滤器
 		for (AnnotationAttributes filter : componentScan.getAnnotationArray("excludeFilters")) {
 			for (TypeFilter typeFilter : typeFiltersFor(filter)) {
 				scanner.addExcludeFilter(typeFilter);
 			}
 		}
 
+		// tips: 不添加@Lazy时的默认值
 		boolean lazyInit = componentScan.getBoolean("lazyInit");
 		if (lazyInit) {
 			scanner.getBeanDefinitionDefaults().setLazyInit(true);
 		}
 
 		Set<String> basePackages = new LinkedHashSet<>();
+		// tips: 扫描指定的包名
 		String[] basePackagesArray = componentScan.getStringArray("basePackages");
 		for (String pkg : basePackagesArray) {
 			String[] tokenized = StringUtils.tokenizeToStringArray(this.environment.resolvePlaceholders(pkg),
 					ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS);
 			Collections.addAll(basePackages, tokenized);
 		}
+        // tips: 扫描指定类所在的包名
 		for (Class<?> clazz : componentScan.getClassArray("basePackageClasses")) {
 			basePackages.add(ClassUtils.getPackageName(clazz));
 		}
+		// tips: 如果没有指定包名，则取当前配置类的包名
 		if (basePackages.isEmpty()) {
 			basePackages.add(ClassUtils.getPackageName(declaringClass));
 		}
 
+		// tips: 排除当前类
 		scanner.addExcludeFilter(new AbstractTypeHierarchyTraversingFilter(false, false) {
 			@Override
 			protected boolean matchClassName(String className) {

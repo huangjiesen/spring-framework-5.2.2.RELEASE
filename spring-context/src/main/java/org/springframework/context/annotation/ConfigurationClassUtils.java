@@ -74,6 +74,11 @@ abstract class ConfigurationClassUtils {
 
 
 	/**
+     * tips: 检查是否为配置类<br/>
+     * * 有@Configuration注解<br/>
+     * * 或@Component,@ComponentScan,@Import,@ImportResource注解<br/>
+     * * 或有加了@Bean注解的方法 <br />
+     *
 	 * Check whether the given bean definition is a candidate for a configuration class
 	 * (or a nested component class declared within a configuration/component class,
 	 * to be auto-registered as well), and mark it accordingly.
@@ -89,6 +94,7 @@ abstract class ConfigurationClassUtils {
 			return false;
 		}
 
+		// tips: 拿到BeanDefinition的注解元数据，不同类型的BeanDefinition获取方法不一样
 		AnnotationMetadata metadata;
 		if (beanDef instanceof AnnotatedBeanDefinition &&
 				className.equals(((AnnotatedBeanDefinition) beanDef).getMetadata().getClassName())) {
@@ -122,9 +128,11 @@ abstract class ConfigurationClassUtils {
 		}
 
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
+        // tips: 是否添加了@Configuration注解
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
+        // tips: 是否添加了@Component,@ComponentScan,@Import,@ImportResource注解，或有加了@Bean注解的方法
 		else if (config != null || isConfigurationCandidate(metadata)) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_LITE);
 		}
@@ -155,6 +163,7 @@ abstract class ConfigurationClassUtils {
 		}
 
 		// Any of the typical annotations found?
+        // tips: 是否添加了@Component,@ComponentScan,@Import,@ImportResource注解
 		for (String indicator : candidateIndicators) {
 			if (metadata.isAnnotated(indicator)) {
 				return true;
@@ -163,6 +172,7 @@ abstract class ConfigurationClassUtils {
 
 		// Finally, let's look for @Bean methods...
 		try {
+		    // tips: 是否有添加了@Bean注解的方法
 			return metadata.hasAnnotatedMethods(Bean.class.getName());
 		}
 		catch (Throwable ex) {

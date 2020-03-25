@@ -130,6 +130,8 @@ class ConfigurationClassParser {
 
 	private final ConditionEvaluator conditionEvaluator;
 
+
+	// tips: 所有的配置类分析结果保存在以下这些属性中
 	private final Map<ConfigurationClass, ConfigurationClass> configurationClasses = new LinkedHashMap<>();
 
 	private final Map<String, ConfigurationClass> knownSuperclasses = new HashMap<>();
@@ -163,6 +165,8 @@ class ConfigurationClassParser {
 
 
 	public void parse(Set<BeanDefinitionHolder> configCandidates) {
+        // 遍历配置类的BeanDefinition进行分析
+        // parse方法中会把当前BeanDefinition，转成ConfigurationClass保存在Map集合中(this.configurationClasses)
 		for (BeanDefinitionHolder holder : configCandidates) {
 			BeanDefinition bd = holder.getBeanDefinition();
 			try {
@@ -185,6 +189,7 @@ class ConfigurationClassParser {
 			}
 		}
 
+		// 处理延迟的 DeferredImportSelector 类型的 ImportSelector
 		this.deferredImportSelectorHandler.process();
 	}
 
@@ -217,24 +222,40 @@ class ConfigurationClassParser {
 	}
 
 
+    /**
+     * 分析单个配置类,分析之后将它记录到已处理配置类记录
+     *   创建配置类(ConfigurationClass)对象时,一般会初始几个属性:metadata,resource,beanName
+     *   然后根据这属性去分析出其它的属性值，如：
+     *      `@Import`
+     * @param configClass
+     * @throws IOException
+     */
 	protected void processConfigurationClass(ConfigurationClass configClass) throws IOException {
+	    // tips:检查 @Conditional 确定是否应该跳过某个项
 		if (this.conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.PARSE_CONFIGURATION)) {
 			return;
 		}
 
+		// tips: 是否已存在相同的配置类。如：ConfigA及ConfigB两个配置类都@Import了同一个类
 		ConfigurationClass existingClass = this.configurationClasses.get(configClass);
 		if (existingClass != null) {
+            // tips:如果这个配置类有@Import注册
 			if (configClass.isImported()) {
+                // tips:已被解析过的相同的配置类也有@Import注解，则合并二者的importedBy属性
+                //  这个判断没太懂，正常讲这个既然是相同的配置类，existingClass.isImported()必然也为true
+                //  猜测递归父类时可能为false
 				if (existingClass.isImported()) {
 					existingClass.mergeImportedBy(configClass);
 				}
 				// Otherwise ignore new imported config class; existing non-imported class overrides it.
+                // tips:直接返回不再分析
 				return;
 			}
 			else {
 				// Explicit bean definition found, probably replacing an import.
-				// Let's remove the old one and go with the new one.
-				this.configurationClasses.remove(configClass);
+                // Let's remove the old one and go with the new one.
+                // tips:在集合中移除已分析的结果，重新分析
+                this.configurationClasses.remove(configClass);
 				this.knownSuperclasses.values().removeIf(configClass::equals);
 			}
 		}
@@ -260,9 +281,9 @@ class ConfigurationClassParser {
 	@Nullable
 	protected final SourceClass doProcessConfigurationClass(ConfigurationClass configClass, SourceClass sourceClass)
 			throws IOException {
-
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
+            // tips: 处理内部类
 			processMemberClasses(configClass, sourceClass);
 		}
 
@@ -280,12 +301,16 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @ComponentScan annotations
+        // tips: 处理@ComponentScans注解
 		Set<AnnotationAttributes> componentScans = AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
 		if (!componentScans.isEmpty() &&
 				!this.conditionEvaluator.shouldSkip(sourceClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN)) {
 			for (AnnotationAttributes componentScan : componentScans) {
 				// The config class is annotated with @ComponentScan -> perform the scan immediately
+                // tips: 根据@ComponentScans注解，扫描指定包得到BeanDefinitionHolder，并自动注册到beanFactory
+                //    只要类使用了@Component注解，或类使用的注解本身被@Component注解就符合条件
+                //    如：@Configuration,@Controller,@Service,@Repository
 				Set<BeanDefinitionHolder> scannedBeanDefinitions =
 						this.componentScanParser.parse(componentScan, sourceClass.getMetadata().getClassName());
 				// Check the set of scanned definitions for any further config classes and parse recursively if needed
@@ -294,7 +319,9 @@ class ConfigurationClassParser {
 					if (bdCand == null) {
 						bdCand = holder.getBeanDefinition();
 					}
+                    // tips: 如果是配置类，则进行递归解析
 					if (ConfigurationClassUtils.checkConfigurationClassCandidate(bdCand, this.metadataReaderFactory)) {
+					    // tips: 递归解析
 						parse(bdCand.getBeanClassName(), holder.getBeanName());
 					}
 				}
