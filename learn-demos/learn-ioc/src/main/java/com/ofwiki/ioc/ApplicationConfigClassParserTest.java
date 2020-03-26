@@ -15,9 +15,9 @@ public class ApplicationConfigClassParserTest {
         ApplicationContext context = new AnnotationConfigApplicationContext(AppConfig1.class);
         //UserService userService = (UserService) context.getBean("userService");
         //System.out.println(userService.hashCode());
-        Object orderService = context.getBean("com.ofwiki.ioc.service.OrderService");
-        System.out.println("hash code is : "+orderService.hashCode());
-        OrderService bean = context.getBean(OrderService.class);
-        System.out.println(bean);
+        //Object orderService = context.getBean("com.ofwiki.ioc.service.OrderService");
+        //System.out.println("hash code is : "+orderService.hashCode());
+        //OrderService bean = context.getBean(OrderService.class);
+        //System.out.println(bean);
     }
 }

@@ -165,8 +165,8 @@ class ConfigurationClassParser {
 
 
 	public void parse(Set<BeanDefinitionHolder> configCandidates) {
-        // 遍历配置类的BeanDefinition进行分析
-        // parse方法中会把当前BeanDefinition，转成ConfigurationClass保存在Map集合中(this.configurationClasses)
+        // tips: 遍历配置类的BeanDefinition进行分析
+        //  parse方法中会把当前BeanDefinition，转成ConfigurationClass保存在Map集合中(this.configurationClasses)
 		for (BeanDefinitionHolder holder : configCandidates) {
 			BeanDefinition bd = holder.getBeanDefinition();
 			try {
@@ -189,7 +189,7 @@ class ConfigurationClassParser {
 			}
 		}
 
-		// 处理延迟的 DeferredImportSelector 类型的 ImportSelector
+		// tips: 处理延迟的 DeferredImportSelector 类型的 ImportSelector
 		this.deferredImportSelectorHandler.process();
 	}
 
@@ -224,9 +224,12 @@ class ConfigurationClassParser {
 
     /**
      * 分析单个配置类,分析之后将它记录到已处理配置类记录
-     *   创建配置类(ConfigurationClass)对象时,一般会初始几个属性:metadata,resource,beanName
-     *   然后根据这属性去分析出其它的属性值，如：
-     *      `@Import`
+     * <p>创建配置类(ConfigurationClass)对象时,一般会初始几个属性:metadata,resource,beanName
+     * <p>然后根据这属性去分析出其它的属性值，如：
+     * <li> Set<ConfigurationClass> importedBy; // 导入这个类的配置类
+     * <li> Set<BeanMethod> beanMethods;//配置的@Bean方法
+     * <li> Map<String, Class<? extends BeanDefinitionReader>> importedResources;//处理@ImportResource注解，key为资源路径，value为BeanDefinitionReader类型
+     * <li> Map<ImportBeanDefinitionRegistrar, AnnotationMetadata> importBeanDefinitionRegistrars;
      * @param configClass
      * @throws IOException
      */
@@ -261,12 +264,20 @@ class ConfigurationClassParser {
 		}
 
 		// Recursively process the configuration class and its superclass hierarchy.
+        // tips: 递归分析配置类及其超类层次结构，
+        //  从当前配置类configClass开始向上沿着类继承结构逐层执行doProcessConfigurationClass，直到遇到的父类是由Java提供的类结束循环
+        //  如：Config1 extends Config2 extends Config3,则循环三遍
+        //  configClass=Config1 , sourceClass=Config1
+        //  configClass=Config1 , sourceClass=Config2
+        //  configClass=Config1 , sourceClass=Config3
 		SourceClass sourceClass = asSourceClass(configClass);
 		do {
+		    // tips: 解析sourceClass的信息，合并到configClass，最后返回sourceClass的父类
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass);
 		}
 		while (sourceClass != null);
 
+		// 保存当前配置类
 		this.configurationClasses.put(configClass, configClass);
 	}
 
@@ -329,9 +340,11 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @Import annotations
+        // tips: 处理@Import注解
 		processImports(configClass, sourceClass, getImports(sourceClass), true);
 
 		// Process any @ImportResource annotations
+        //
 		AnnotationAttributes importResource =
 				AnnotationConfigUtils.attributesFor(sourceClass.getMetadata(), ImportResource.class);
 		if (importResource != null) {
