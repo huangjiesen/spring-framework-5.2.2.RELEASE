@@ -339,15 +339,19 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			configClasses.removeAll(alreadyParsed);
 
 			// Read the model and create bean definitions based on its content
+            // tips: 创建一个配置类读取器，根据`ConfigurationClass`内容向beanFactory中注册`BeanDefinition`
 			if (this.reader == null) {
 				this.reader = new ConfigurationClassBeanDefinitionReader(
 						registry, this.sourceExtractor, this.resourceLoader, this.environment,
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
+			// tips: 根据`ConfigurationClass`内容向beanFactory中注册`BeanDefinition`
 			this.reader.loadBeanDefinitions(configClasses);
 			alreadyParsed.addAll(configClasses);
 
 			candidates.clear();
+            // tips: 注册的新的`BeanDefinition`后，可能会产生新的配置类，因此要递归解析，真到没有新的配置类
+            //  ImportBeanDefinitionRegistrar及ImportSelector接口的都可以产生新的配置类
 			if (registry.getBeanDefinitionCount() > candidateNames.length) {
 				String[] newCandidateNames = registry.getBeanDefinitionNames();
 				Set<String> oldCandidateNames = new HashSet<>(Arrays.asList(candidateNames));
