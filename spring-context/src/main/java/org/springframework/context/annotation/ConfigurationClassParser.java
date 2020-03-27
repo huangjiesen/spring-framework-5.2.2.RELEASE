@@ -365,9 +365,14 @@ class ConfigurationClassParser {
 		}
 
 		// Process default methods on interfaces
+        // tips: 接口默认方法处理
+        //  不明白这里的必要性，因为在后续的`ConfigurationClassBeanDefinitionReader.loadBeanDefinitionsForBeanMethod`
+        //  方法里将这里解析出来的`BeanMethod`转成`BeanDefinition`时，必然会被忽略(`configClass`相同，这里的方法就不会覆盖前面的`@Bean`方法)
+        //  因为上面处理`@Bean`方法时，已经能获取到接口的重载方法或默认方法，
 		processInterfaces(configClass, sourceClass);
 
 		// Process superclass, if any
+        // tips: 返回父类,进行递归解析,直到遇到的父类是由Java提供的类返回null结束递归
 		if (sourceClass.getMetadata().hasSuperClass()) {
 			String superclass = sourceClass.getMetadata().getSuperClassName();
 			if (superclass != null && !superclass.startsWith("java") &&

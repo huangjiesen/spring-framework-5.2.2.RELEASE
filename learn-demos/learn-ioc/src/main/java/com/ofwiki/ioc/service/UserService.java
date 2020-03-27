@@ -1,9 +1,5 @@
 package com.ofwiki.ioc.service;
 
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Component;
-
 /**
  * @author HuangJS
  * @date 2020-03-24 4:34 下午
@@ -11,4 +7,18 @@ import org.springframework.stereotype.Component;
 //@Lazy(false)
 //@Component
 public class UserService {
+    private int ss;
+
+    public UserService() {
+        super();
+    }
+
+    public UserService(int ss) {
+        this.ss = ss;
+    }
+
+    public void sss() {
+
+        System.out.println(ss);
+    }
 }
