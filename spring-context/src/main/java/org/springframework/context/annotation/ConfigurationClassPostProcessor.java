@@ -433,7 +433,9 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			return;
 		}
 
-		// tips: 对添加了 @Configuration 添加的类型，进行cglib动态代理增强
+		// tips: 对添加了 @Configuration 注解的配置类，进行cglib动态代理增强
+        //  目的是维护@Bean方法产生bean的作用域，如@Bean方法A是单例则只会初始化一次，同类的其它@Bean方法在方法内部直接调用方法A，得到的是同一个对象。
+        //  因为调的是cglib生成的代理子类的方法，该代理方法会做一下过虑判断，如果bean工厂不存在该对象，才会创建，创建后也注册到工厂
 		ConfigurationClassEnhancer enhancer = new ConfigurationClassEnhancer();
 		for (Map.Entry<String, AbstractBeanDefinition> entry : configBeanDefs.entrySet()) {
 			AbstractBeanDefinition beanDef = entry.getValue();
