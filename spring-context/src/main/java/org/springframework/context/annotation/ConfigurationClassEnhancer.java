@@ -130,8 +130,11 @@ class ConfigurationClassEnhancer {
 		enhancer.setUseFactory(false);
 		// 命名简略
 		enhancer.setNamingPolicy(SpringNamingPolicy.INSTANCE);
-		//
+		// 增强策略：添加一个BeanFactory类型的$$beanFactory字段
 		enhancer.setStrategy(new BeanFactoryAwareGeneratorStrategy(classLoader));
+		// 方法调用拦截：
+        //   1.BeanMethodInterceptor: 拦截bean方法，返回创建的或缓存的对象
+        //   2.BeanFactoryAwareMethodInterceptor：处理EnhancedConfiguration接口的回调，保存BeanFactory对象到$$beanFactory字段
 		enhancer.setCallbackFilter(CALLBACK_FILTER);
 		enhancer.setCallbackTypes(CALLBACK_FILTER.getCallbackTypes());
 		return enhancer;
@@ -323,8 +326,9 @@ class ConfigurationClassEnhancer {
 		@Nullable
 		public Object intercept(Object enhancedConfigInstance, Method beanMethod, Object[] beanMethodArgs,
 					MethodProxy cglibMethodProxy) throws Throwable {
-
+		    // tips: 从代理配置类对象中获取BeanFactor对象
 			ConfigurableBeanFactory beanFactory = getBeanFactory(enhancedConfigInstance);
+			// tips: 获取方法要创建的bean名称
 			String beanName = BeanAnnotationHelper.determineBeanNameFor(beanMethod);
 
 			// Determine whether this bean is a scoped-proxy
@@ -342,6 +346,7 @@ class ConfigurationClassEnhancer {
 			// proxy that intercepts calls to getObject() and returns any cached bean instance.
 			// This ensures that the semantics of calling a FactoryBean from within @Bean methods
 			// is the same as that of referring to a FactoryBean within XML. See SPR-6602.
+            // tips: 判断容器中是否已存在方法要创建的bean
 			if (factoryContainsBean(beanFactory, BeanFactory.FACTORY_BEAN_PREFIX + beanName) &&
 					factoryContainsBean(beanFactory, beanName)) {
 				Object factoryBean = beanFactory.getBean(BeanFactory.FACTORY_BEAN_PREFIX + beanName);
@@ -350,6 +355,8 @@ class ConfigurationClassEnhancer {
 				}
 				else {
 					// It is a candidate FactoryBean - go ahead with enhancement
+                    // tips: 如果方法要创建的Bean有容器中已存在，且Bean是FactoryBean
+                    //       则对Bean对象进行代理增强，使多次调用该bean的getObject()方法时得到同一个对象
 					return enhanceFactoryBean(factoryBean, beanMethod.getReturnType(), beanFactory, beanName);
 				}
 			}
@@ -500,6 +507,7 @@ class ConfigurationClassEnhancer {
 				Class<?> clazz = factoryBean.getClass();
 				boolean finalClass = Modifier.isFinal(clazz.getModifiers());
 				boolean finalMethod = Modifier.isFinal(clazz.getMethod("getObject").getModifiers());
+				// tips: 判断是否为final类或getObject方法用final修饰，说明不能继承或重写
 				if (finalClass || finalMethod) {
 					if (exposedType.isInterface()) {
 						if (logger.isTraceEnabled()) {
@@ -508,6 +516,9 @@ class ConfigurationClassEnhancer {
 									(finalClass ? "implementation class" : "getObject() method") +
 									" is final: Otherwise a getObject() call would not be routed to the factory.");
 						}
+						// tips: 如果该@Bean方法返回值是接口,如:FactoryBean接口，则使用jdk动态代理接口
+                        //       调用getObject方法时，直接返回容器已存在的对象
+                        //       调用其它方法，则通过反射的方式调用factoryBean对象的方法
 						return createInterfaceProxyForFactoryBean(factoryBean, exposedType, beanFactory, beanName);
 					}
 					else {
@@ -518,6 +529,7 @@ class ConfigurationClassEnhancer {
 									" is final: A getObject() call will NOT be routed to the factory. " +
 									"Consider declaring the return type as a FactoryBean interface.");
 						}
+						// tips: 如果该@Bean方法声明返回值是实现类，不是FactoryBean，则不进行增强，调用getObject方法时，方法体会再次被执行
 						return factoryBean;
 					}
 				}
@@ -525,7 +537,7 @@ class ConfigurationClassEnhancer {
 			catch (NoSuchMethodException ex) {
 				// No getObject() method -> shouldn't happen, but as long as nobody is trying to call it...
 			}
-
+            // tips: 使用cglib进行代理增强，调用getObject方法时，直接返回容器已存在的实际对象(非本身对象"&"+beanName)
 			return createCglibProxyForFactoryBean(factoryBean, beanFactory, beanName);
 		}
 
@@ -535,9 +547,11 @@ class ConfigurationClassEnhancer {
 			return Proxy.newProxyInstance(
 					factoryBean.getClass().getClassLoader(), new Class<?>[] {interfaceType},
 					(proxy, method, args) -> {
+					    // tips:调用getObject方法时，直接返回容器已存在的实际对象(非本身对象"&"+beanName)
 						if (method.getName().equals("getObject") && args == null) {
 							return beanFactory.getBean(beanName);
 						}
+						// tips: 调用其它方法，则通过反射的方式调用factoryBean对象的方法
 						return ReflectionUtils.invokeMethod(method, factoryBean, args);
 					});
 		}
@@ -557,6 +571,7 @@ class ConfigurationClassEnhancer {
 
 			if (objenesis.isWorthTrying()) {
 				try {
+                    // tips: 代理对象使用缓存，避免每次都创建新的代理对象
 					fbProxy = objenesis.newInstance(fbClass, enhancer.getUseCache());
 				}
 				catch (ObjenesisException ex) {
@@ -576,9 +591,11 @@ class ConfigurationClassEnhancer {
 			}
 
 			((Factory) fbProxy).setCallback(0, (MethodInterceptor) (obj, method, args, proxy) -> {
+                // tips: 调用getObject方法时，直接返回容器已存在的实际对象(非本身对象"&"+beanName)
 				if (method.getName().equals("getObject") && args.length == 0) {
 					return beanFactory.getBean(beanName);
 				}
+				// tips: 其它方法直接调用
 				return proxy.invoke(factoryBean, args);
 			});
 
