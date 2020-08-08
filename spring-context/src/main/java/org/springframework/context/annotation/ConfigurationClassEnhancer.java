@@ -95,6 +95,7 @@ class ConfigurationClassEnhancer {
 	 * @return the enhanced subclass
 	 */
 	public Class<?> enhance(Class<?> configClass, @Nullable ClassLoader classLoader) {
+	    // tips: 判断是否被代理增强过
 		if (EnhancedConfiguration.class.isAssignableFrom(configClass)) {
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("Ignoring request to enhance %s as it has " +
@@ -106,7 +107,8 @@ class ConfigurationClassEnhancer {
 			}
 			return configClass;
 		}
-		Class<?> enhancedClass = createClass(newEnhancer(configClass, classLoader));
+		// tips: cglib代理增强
+		Class<?> enhancedClass =  createClass(newEnhancer(configClass, classLoader));
 		if (logger.isTraceEnabled()) {
 			logger.trace(String.format("Successfully enhanced %s; enhanced class name is: %s",
 					configClass.getName(), enhancedClass.getName()));
@@ -119,10 +121,16 @@ class ConfigurationClassEnhancer {
 	 */
 	private Enhancer newEnhancer(Class<?> configSuperClass, @Nullable ClassLoader classLoader) {
 		Enhancer enhancer = new Enhancer();
+		// 要增强的目标类，这里写标父类是因为cglib实现是基于继承
 		enhancer.setSuperclass(configSuperClass);
+		// 增强接口，该接口继承BeanFactoryAware，增强该接口的目的：
+        //   一是为了获取BeanFactory
+        //   二是为了便于判断实现了EnhancedConfiguration接口，说明已经被增强
 		enhancer.setInterfaces(new Class<?>[] {EnhancedConfiguration.class});
 		enhancer.setUseFactory(false);
+		// 命名简略
 		enhancer.setNamingPolicy(SpringNamingPolicy.INSTANCE);
+		//
 		enhancer.setStrategy(new BeanFactoryAwareGeneratorStrategy(classLoader));
 		enhancer.setCallbackFilter(CALLBACK_FILTER);
 		enhancer.setCallbackTypes(CALLBACK_FILTER.getCallbackTypes());
