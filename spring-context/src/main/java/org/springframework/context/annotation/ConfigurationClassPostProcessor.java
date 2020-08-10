@@ -282,7 +282,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 					logger.debug("Bean definition has already been processed as a configuration class: " + beanDef);
 				}
 			}
-            // tips: 这是正常只能拿到手动注册的类，除非有手动添加的BeanDefinitionRegistryPostProcessor预先向beanFactory添加beanDefinition
+            // tips: 这里正常只能拿到手动注册的类，除非有手动添加的BeanDefinitionRegistryPostProcessor预先向beanFactory添加beanDefinition
 			//   如果是否为配置类，有@Configuration注解，或@Component,@ComponentScan,@Import,@ImportResource注解，或有加了@Bean注解的方法
 			else if (ConfigurationClassUtils.checkConfigurationClassCandidate(beanDef, this.metadataReaderFactory)) {
 				configCandidates.add(new BeanDefinitionHolder(beanDef, beanName));
@@ -351,7 +351,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			alreadyParsed.addAll(configClasses);
 
 			candidates.clear();
-            // tips: 注册的新的`BeanDefinition`后，可能会产生新的配置类，因此要递归解析，真到没有新的配置类
+            // tips: 注册的新的`BeanDefinition`后，可能会产生新的配置类，因此要递归解析，直到没有新的配置类
             //  ImportBeanDefinitionRegistrar及ImportSelector接口的都可以产生新的配置类
 			if (registry.getBeanDefinitionCount() > candidateNames.length) {
 				String[] newCandidateNames = registry.getBeanDefinitionNames();
