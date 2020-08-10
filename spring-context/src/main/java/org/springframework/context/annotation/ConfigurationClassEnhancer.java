@@ -405,6 +405,7 @@ class ConfigurationClassEnhancer {
 						}
 					}
 				}
+				// tips: 在工厂中获取bean
 				Object beanInstance = (useArgs ? beanFactory.getBean(beanName, beanMethodArgs) :
 						beanFactory.getBean(beanName));
 				if (!ClassUtils.isAssignableValue(beanMethod.getReturnType(), beanInstance)) {
