@@ -346,7 +346,7 @@ class ConfigurationClassEnhancer {
 			// proxy that intercepts calls to getObject() and returns any cached bean instance.
 			// This ensures that the semantics of calling a FactoryBean from within @Bean methods
 			// is the same as that of referring to a FactoryBean within XML. See SPR-6602.
-            // tips: 判断容器中是否已存在方法要创建的bean
+            // tips: 判断容器中是否已存对应的FactoryBean实例
 			if (factoryContainsBean(beanFactory, BeanFactory.FACTORY_BEAN_PREFIX + beanName) &&
 					factoryContainsBean(beanFactory, beanName)) {
 				Object factoryBean = beanFactory.getBean(BeanFactory.FACTORY_BEAN_PREFIX + beanName);
@@ -355,12 +355,14 @@ class ConfigurationClassEnhancer {
 				}
 				else {
 					// It is a candidate FactoryBean - go ahead with enhancement
-                    // tips: 如果方法要创建的Bean有容器中已存在，且Bean是FactoryBean
+                    // tips: 如果方法要创建的Bean在容器中已存在，且Bean是FactoryBean
                     //       则对Bean对象进行代理增强，使多次调用该bean的getObject()方法时得到同一个对象
 					return enhanceFactoryBean(factoryBean, beanMethod.getReturnType(), beanFactory, beanName);
 				}
 			}
 
+			// tips: 判断执行的方法和调用方法是不是同一个方法,是则说明是第一次调用
+            //  另外,嵌套调用则不是同一个方法 -> 如类的实例化A方法时,调用了当前方法B
 			if (isCurrentlyInvokedFactoryMethod(beanMethod)) {
 				// The factory is calling the bean method in order to instantiate and register the bean
 				// (i.e. via a getBean() call) -> invoke the super implementation of the method to actually
@@ -375,9 +377,13 @@ class ConfigurationClassEnhancer {
 									"these container lifecycle issues; see @Bean javadoc for complete details.",
 							beanMethod.getDeclaringClass().getSimpleName(), beanMethod.getName()));
 				}
+				// tips: 调用父类方法创建对象
 				return cglibMethodProxy.invokeSuper(enhancedConfigInstance, beanMethodArgs);
 			}
 
+            // tips: 否则,则尝试从容器中获取该 Bean 对象
+            //  怎么获取呢? 通过调用 beanFactory.getBean 方法
+            //  而这个getBean 方法,如果对象已经创建则直接返回,如果还没有创建,则创建,然后放入容器中,然后返回
 			return resolveBeanReference(beanMethod, beanMethodArgs, beanFactory, beanName);
 		}
 
