@@ -285,7 +285,7 @@ final class PostProcessorRegistrationDelegate {
      * 3.找出所有实现了Ordered接口的处理器，排序并注册
      * 4.找出其它处理器进行注册
      * 5.找出其它实现了MergedBeanDefinitionPostProcessor接口的处理器。即便实现了PriorityOrdered或Ordered接口的处理器，在时会被重新注册
-     * 6.手动绑定ApplicationListenerDetector处理器
+     * 6.重新手动绑定ApplicationListenerDetector处理器到末端
      * @param beanFactory
      * @param applicationContext
      */
@@ -362,7 +362,8 @@ final class PostProcessorRegistrationDelegate {
 
 		// Re-register post-processor for detecting inner beans as ApplicationListeners,
 		// moving it to the end of the processor chain (for picking up proxies etc).
-        // tips: 手动绑定ApplicationListenerDetector处理器
+        // tips: 重新手动绑定ApplicationListenerDetector处理器到末端，
+        //  之前在调用 AbstractApplicationContext#prepareBeanFactory 方法时，已经手动注册过一次
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(applicationContext));
 	}
 
