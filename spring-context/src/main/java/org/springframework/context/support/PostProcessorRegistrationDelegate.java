@@ -253,6 +253,42 @@ final class PostProcessorRegistrationDelegate {
 		beanFactory.clearMetadataCache();
 	}
 
+    /**
+     * 调用两种后置处理器`BeanFactoryPostProcessor`,`BeanDefinitionRegistryPostProcessor`,这两个后置处理器是继续关系
+     * 先执行所有子接口`BeanDefinitionRegistryPostProcessor`实例的方法，再调所有父接口`BeanFactoryPostProcessor`实例的方法
+     * 详细执行顺序
+     * 1. 执行`BeanDefinitionRegistryPostProcessor`的方法
+     *    1.1. 手动添加的`BeanDefinitionRegistryPostProcessor`,通过{@link AbstractApplicationContext#addBeanFactoryPostProcessor}方法添加到{@link AbstractApplicationContext#beanFactoryPostProcessors}的bean
+     *    1.2. beanFactory中实现了`PriorityOrdered`接口的`BeanDefinitionRegistryPostProcessor`。如`ConfigurationClassPostProcessor`
+     *    1.3. beanFactory中实现了`Ordered`接口的`BeanDefinitionRegistryPostProcessor`
+     *    1.4. 循环查找beanFactory中其它不需要排序的未执行的`BeanDefinitionRegistryPostProcessor`并执行，包含三种未以下三种：
+     *         * `PriorityOrdered`，
+     *         * `Ordered`的
+     *         * 及在`BeanDefinitionRegistryPostProcessor`方法回调时动态注册到beanFactory的其它`BeanDefinitionRegistryPostProcessor`
+     * 2. 执行`BeanFactoryPostProcessor`的方法
+     *    2.1 执行所有`BeanDefinitionRegistryPostProcessor`类型的`BeanFactoryPostProcessor`方法
+     *        前面的`BeanDefinitionRegistryPostProcessor`在执行回调前都保存在一个`List<BeanFactoryPostProcessor>`集合中
+     *        循环这个集合，回调执行`BeanFactoryPostProcessor`的方法,所以这里`BeanFactoryPostProcessor`执行顺序跟前面的`BeanDefinitionRegistryPostProcessor`一样
+     *    2.2 手动添加的`BeanFactoryPostProcessor`,通过{@link AbstractApplicationContext#addBeanFactoryPostProcessor}方法添加到{@link AbstractApplicationContext#beanFactoryPostProcessors}的bean
+     *    2.3 beanFactory中实现了`PriorityOrdered`接口的`BeanFactoryPostProcessor`
+     *    2.4 beanFactory中实现了`Ordered`接口的`BeanFactoryPostProcessor`
+     *    2.5 beanFactory中其它不需要排序的`BeanFactoryPostProcessor`
+     *
+     * @param beanFactory
+     * @param beanFactoryPostProcessors 手动调用AbstractApplicationContext#addBeanFactoryPostProcessor添加的后置处理器
+     */
+    /**
+     * 实例化所有的`BeanPostProcessor`处理器，并向工厂注册(保存到一个专门保存BeanPostProcessor实例的集合中)<pre/>
+     * 详细的注册顺序：
+     * 1.手动绑定BeanPostProcessorChecker处理器
+     * 2.找出所有实现了PriorityOrdered接口的处理器，排序并注册
+     * 3.找出所有实现了Ordered接口的处理器，排序并注册
+     * 4.找出其它处理器进行注册
+     * 5.找出其它实现了MergedBeanDefinitionPostProcessor接口的处理器。即便实现了PriorityOrdered或Ordered接口的处理器，在时会被重新注册
+     * 6.手动绑定ApplicationListenerDetector处理器
+     * @param beanFactory
+     * @param applicationContext
+     */
 	public static void registerBeanPostProcessors(
 			ConfigurableListableBeanFactory beanFactory, AbstractApplicationContext applicationContext) {
 
@@ -262,6 +298,7 @@ final class PostProcessorRegistrationDelegate {
 		// a bean is created during BeanPostProcessor instantiation, i.e. when
 		// a bean is not eligible for getting processed by all BeanPostProcessors.
 		int beanProcessorTargetCount = beanFactory.getBeanPostProcessorCount() + 1 + postProcessorNames.length;
+		// tips: 绑定BeanPostProcessorChecker处理器
 		beanFactory.addBeanPostProcessor(new BeanPostProcessorChecker(beanFactory, beanProcessorTargetCount));
 
 		// Separate between BeanPostProcessors that implement PriorityOrdered,
@@ -287,6 +324,7 @@ final class PostProcessorRegistrationDelegate {
 		}
 
 		// First, register the BeanPostProcessors that implement PriorityOrdered.
+        // tips: 1. 找出所有实现了PriorityOrdered接口的处理器，排序并注册
 		sortPostProcessors(priorityOrderedPostProcessors, beanFactory);
 		registerBeanPostProcessors(beanFactory, priorityOrderedPostProcessors);
 
@@ -299,6 +337,7 @@ final class PostProcessorRegistrationDelegate {
 				internalPostProcessors.add(pp);
 			}
 		}
+        // tips: 2. 找出所有实现了Ordered接口的处理器，排序并注册
 		sortPostProcessors(orderedPostProcessors, beanFactory);
 		registerBeanPostProcessors(beanFactory, orderedPostProcessors);
 
@@ -311,14 +350,19 @@ final class PostProcessorRegistrationDelegate {
 				internalPostProcessors.add(pp);
 			}
 		}
+
+		// tips: 3. 找出其它处理器进行注册
 		registerBeanPostProcessors(beanFactory, nonOrderedPostProcessors);
 
 		// Finally, re-register all internal BeanPostProcessors.
+        // tips: 4. 最后，找出其它实现了MergedBeanDefinitionPostProcessor接口的处理器
+        //  即便实现了PriorityOrdered或Ordered接口的处理器，在时会被重新注册,因为注册是先 remove(beanPostProcessor)再 add(beanPostProcessor)
 		sortPostProcessors(internalPostProcessors, beanFactory);
 		registerBeanPostProcessors(beanFactory, internalPostProcessors);
 
 		// Re-register post-processor for detecting inner beans as ApplicationListeners,
 		// moving it to the end of the processor chain (for picking up proxies etc).
+        // tips: 手动绑定ApplicationListenerDetector处理器
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(applicationContext));
 	}
 

@@ -536,9 +536,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				// Invoke factory processors registered as beans in the context.
                 // 调用两种后置处理器，会将工厂中的后置处理器bean和手动添加的后置处理器(this.beanFactoryPostProcessors)合并后一起调用
                 // 先调所有`BeanDefinitionRegistryPostProcessor`实例的方法，再调所有`BeanFactoryPostProcessor`实例的方法
+                // 执行完这个方法，已经完成了所有的BeanDefinition解析注册工作
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
+                // 实例化和注册BeanPostProcessors处理器
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
