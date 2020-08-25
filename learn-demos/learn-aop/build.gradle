@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-group 'com.ofwifi'
+group 'com.ofwiki'
 version '5.2.2.RELEASE'
 
 sourceCompatibility = 1.8
@@ -12,6 +12,8 @@ repositories {
 }
 
 dependencies {
+    compile("org.aspectj:aspectjweaver")
+    compileOnly("org.aspectj:aspectjrt")
     testCompile group: 'junit', name: 'junit', version: '4.12'
     compile project(":spring-context")
 }
