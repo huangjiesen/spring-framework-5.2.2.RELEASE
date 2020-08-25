@@ -853,9 +853,15 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
 		// Trigger initialization of all non-lazy singleton beans...
+        // tips: 触发所有非懒加载单例bean的初始化…
 		for (String beanName : beanNames) {
+		    // tips: 将其它非RootBeanDefinition的AbstractBeanDefinition转成RootBeanDefinition
+            //  其它Bean在Spring可能解析为GenericBeanDefinition/ChildBeanDefinition，
+            //  而Spring上下文包括实例化所有Bean用的AbstractBeanDefinition是RootBeanDefinition
+            //  这时候就使用getMergedLocalBeanDefinition方法做了一次转化，将非RootBeanDefinition转换为RootBeanDefinition以供后续操作
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+			    // tips: FactoryBean处理
 				if (isFactoryBean(beanName)) {
 					Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
 					if (bean instanceof FactoryBean) {
@@ -870,12 +876,15 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 							isEagerInit = (factory instanceof SmartFactoryBean &&
 									((SmartFactoryBean<?>) factory).isEagerInit());
 						}
+						// tips: 标准的FactoryBean不需要急切地初始化:它的getObject()只会在实际访问时被调用，即使是在单例对象的情况下
+                        //  如果是SmartFactoryBean的实现，且isEagerInit方法返回true，则立即初始化
 						if (isEagerInit) {
 							getBean(beanName);
 						}
 					}
 				}
 				else {
+				    // tips: 初始化其他单例bean
 					getBean(beanName);
 				}
 			}

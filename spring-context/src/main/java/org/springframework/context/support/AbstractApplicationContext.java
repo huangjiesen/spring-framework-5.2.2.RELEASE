@@ -516,31 +516,31 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
 			// Prepare this context for refreshing.
-            // 刷新上下文前的预备工作，如：设置启动时间，激活标识，初始化属性源(property source)配置
+            // tips: 刷新上下文前的预备工作，如：设置启动时间，激活标识，初始化属性源(property source)配置
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
-            // 告诉子类刷新内部bean工厂。
+            // tips: 告诉子类刷新内部bean工厂。
             // 返回beanFactory  ->  为何要返回，因为在父类GenericApplicationContext定义的beanFactory修饰符是private
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
-            // 使用工厂前的一些准备工作，如:设置上下文的类加载器和后置处理器到这工厂对象中
+            // tips: 使用工厂前的一些准备工作，如:设置上下文的类加载器和后置处理器到这工厂对象中
 			prepareBeanFactory(beanFactory);
 
 			try {
 				// Allows post-processing of the bean factory in context subclasses.
-                // 这是个空实现的预留方法，如GenericWebApplicationContext就有实现，做一些beanFactory初始化的扩展
+                // tips: 这是个空实现的预留方法，如GenericWebApplicationContext就有实现，做一些beanFactory初始化的扩展
 				postProcessBeanFactory(beanFactory);
 
-				// Invoke factory processors registered as beans in the context.
+				// tips: Invoke factory processors registered as beans in the context.
                 // 调用两种后置处理器，会将工厂中的后置处理器bean和手动添加的后置处理器(this.beanFactoryPostProcessors)合并后一起调用
                 // 先调所有`BeanDefinitionRegistryPostProcessor`实例的方法，再调所有`BeanFactoryPostProcessor`实例的方法
                 // 执行完这个方法，已经完成了所有的BeanDefinition解析注册工作
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
-                // 实例化和注册BeanPostProcessors处理器
+                // tips: 实例化和注册BeanPostProcessors处理器
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
@@ -556,6 +556,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
+                // tips: 初始化所有剩余非懒加载的单例bean
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
@@ -892,6 +893,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.freezeConfiguration();
 
 		// Instantiate all remaining (non-lazy-init) singletons.
+        // tips: 初始化所有剩余非懒加载的单例bean
 		beanFactory.preInstantiateSingletons();
 	}
 
