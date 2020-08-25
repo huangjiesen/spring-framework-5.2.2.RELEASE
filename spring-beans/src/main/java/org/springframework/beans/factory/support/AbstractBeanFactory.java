@@ -246,6 +246,10 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		Object bean;
 
 		// Eagerly check singleton cache for manually registered singletons.
+        // tips: 在单例缓存里获取对象，共三级缓存
+        //  一级：this.singletonObjects
+        //  一级：this.earlySingletonObjects
+        //  一级：this.singletonFactories
 		Object sharedInstance = getSingleton(beanName);
 		if (sharedInstance != null && args == null) {
 			if (logger.isTraceEnabled()) {
@@ -259,15 +263,20 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
-
 		else {
 			// Fail if we're already creating this bean instance:
 			// We're assumably within a circular reference.
+            // tips: 执行这此，说明从单例缓存中没有获取到单例 bean，
+            //  则说明两种情况：
+            //  1.bean的scope非singleton
+            //  2.bean的scope是singleton,但是没有初始化完成
+            //
+            // tips: 此处为true说明原型bean有循环依赖，spring只支持单例模式下的循环依赖，因此抛出异常
 			if (isPrototypeCurrentlyInCreation(beanName)) {
 				throw new BeanCurrentlyInCreationException(beanName);
 			}
-
 			// Check if bean definition exists in this factory.
+            // tips: 正常不会有父级BeanFactory
 			BeanFactory parentBeanFactory = getParentBeanFactory();
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
 				// Not found -> check parent.
@@ -290,6 +299,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 
 			if (!typeCheckOnly) {
+			    // tips: 将bean标记为已经创建,保存在 this.alreadyCreated 这个Set中
 				markBeanAsCreated(beanName);
 			}
 
@@ -298,6 +308,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				checkMergedBeanDefinition(mbd, beanName, args);
 
 				// Guarantee initialization of beans that the current bean depends on.
+                // tips: 先初始化bean依赖的bean，如通过`@DependsOn(value = {"bean1","bean2","bean..."})`指定的bean
 				String[] dependsOn = mbd.getDependsOn();
 				if (dependsOn != null) {
 					for (String dep : dependsOn) {
