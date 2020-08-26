@@ -449,6 +449,7 @@ class ConfigurationClassEnhancer {
 			}
 			finally {
 				if (alreadyInCreation) {
+				    // tips: 标记该bean已经被创建，spring统一创建所有的单例bean对象时，排除这里创建过的对象
 					beanFactory.setCurrentlyInCreation(beanName, true);
 				}
 			}

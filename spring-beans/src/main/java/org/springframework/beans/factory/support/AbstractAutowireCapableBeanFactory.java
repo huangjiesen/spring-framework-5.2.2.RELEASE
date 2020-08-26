@@ -494,6 +494,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Prepare method overrides.
 		try {
+		    // tips: 处理lookup-method 和 replace-method配置
 			mbdToUse.prepareMethodOverrides();
 		}
 		catch (BeanDefinitionValidationException ex) {
@@ -503,8 +504,15 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		try {
 			// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
+            // tips: 实例化前的前置处理,如果没有InstantiationAwareBeanPostProcessor前置处理器，或 AbstractBeanDefinition.synthetic 属性为false,则不会创建代理对象
+            //       1.这个前置处理器，一般是供spring内部使用，处理aop处理的bean
+            //       2.开发一般不用，如果想自己实例化spring管理的bean，且不需要spring输入这个bean的依赖，则可以考虑这个处理器
+            //
+            // tips: 1. 通过 InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation(Class<?> beanClass, String beanName) 方法回调创建代理对象
+            //       2. 如果通过postProcessBeforeInstantiation创建了代理对象，则接着执行BeanPostProcessor.postProcessAfterInitialization
 			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
 			if (bean != null) {
+			    // tips: 短路操作，直接返回，不处理依赖注入
 				return bean;
 			}
 		}
@@ -1106,17 +1114,22 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	@Nullable
 	protected Object resolveBeforeInstantiation(String beanName, RootBeanDefinition mbd) {
 		Object bean = null;
+        // tips: 判断标记
 		if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) {
 			// Make sure bean class is actually resolved at this point.
+            // tips: 判断是否有前置处理器 InstantiationAwareBeanPostProcessor
 			if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 				Class<?> targetType = determineTargetType(beanName, mbd);
 				if (targetType != null) {
+                    // tips: 传入targetType执行 InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation 创建对象
 					bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
 					if (bean != null) {
+                        // tips: 如果创建了对象，则执行后置处理器的BeanPostProcessor.postProcessAfterInitialization回调
 						bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
 					}
 				}
 			}
+			// tips: 做标记，以免后序重复执行BeanPostProcessor.postProcessAfterInitialization
 			mbd.beforeInstantiationResolved = (bean != null);
 		}
 		return bean;

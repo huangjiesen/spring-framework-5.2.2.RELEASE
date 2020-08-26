@@ -271,7 +271,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
             //  1.bean的scope非singleton
             //  2.bean的scope是singleton,但是没有初始化完成
             //
-            // tips: 此处为true说明原型bean有循环依赖，spring只支持单例模式下的循环依赖，因此抛出异常
+            // tips: 此处为true说明该原型bean有循环依赖，spring只支持单例模式下的循环依赖，因此抛出异常
 			if (isPrototypeCurrentlyInCreation(beanName)) {
 				throw new BeanCurrentlyInCreationException(beanName);
 			}
@@ -304,7 +304,10 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 
 			try {
+                // tips: 将其它非RootBeanDefinition的AbstractBeanDefinition转成RootBeanDefinition
 				final RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
+				// tips: 检查BeanDefinition，如果是对应的class或方法是抽象的则抛出异常
+                //  有一种情况 @Lookup 标记的通常是抽象方法，实现方法注入，对应的类也是抽象类，暂时不清楚如何处理
 				checkMergedBeanDefinition(mbd, beanName, args);
 
 				// Guarantee initialization of beans that the current bean depends on.
@@ -312,10 +315,13 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				String[] dependsOn = mbd.getDependsOn();
 				if (dependsOn != null) {
 					for (String dep : dependsOn) {
+					    // tips: 判断为循环依赖,则报错。
+                        //  如：beanA的依赖注解为@DependsOn("beanB"),beanB的依赖注解为@DependsOn("beanA")
 						if (isDependent(beanName, dep)) {
 							throw new BeanCreationException(mbd.getResourceDescription(), beanName,
 									"Circular depends-on relationship between '" + beanName + "' and '" + dep + "'");
 						}
+						// tips: 保存依赖关系
 						registerDependentBean(dep, beanName);
 						try {
 							getBean(dep);
@@ -329,21 +335,30 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 				// Create bean instance.
 				if (mbd.isSingleton()) {
+                    // tips: getSingleton方法所做的事情
+                    //    1.标记bean正在创建中
+                    //    2.调用ObjectFactory的方法创建bean
+                    //    3.去掉正在创建中bean的标记
+                    //    4.将创建好有单例bean保存至集合registeredSingletons、registeredSingletons中
+                    //    5.并从集合singletonFactories移除对应的ObjectFactory,如果存在
+                    //    6.并从集合earlySingletonObjects移除单例bean,如果存在
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
+                            // tips: 创建单例bean
 							return createBean(beanName, mbd, args);
 						}
 						catch (BeansException ex) {
 							// Explicitly remove instance from singleton cache: It might have been put there
 							// eagerly by the creation process, to allow for circular reference resolution.
 							// Also remove any beans that received a temporary reference to the bean.
+                            // tips: 未细看，应该是在创建失败时销毁bean，及相关引用及相关依赖bean
 							destroySingleton(beanName);
 							throw ex;
 						}
 					});
 					bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
 				}
-
+                // tips: 创建原型bean
 				else if (mbd.isPrototype()) {
 					// It's a prototype -> create a new instance.
 					Object prototypeInstance = null;

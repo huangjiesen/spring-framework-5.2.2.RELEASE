@@ -174,14 +174,20 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
+	    // tips: 能够在 singletonObjects 集合中取到值，说明单例对象已经初始化完成
 		Object singletonObject = this.singletonObjects.get(beanName);
+		// tips: 如果取不到，则判断是否单例bean是否正在初始化创建中
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
 			synchronized (this.singletonObjects) {
+                // tips: 是否返回刚创建好有引用，这个时候对象有依赖可能还没注入
 				singletonObject = this.earlySingletonObjects.get(beanName);
-				if (singletonObject == null && allowEarlyReference) {
+                if (singletonObject == null && allowEarlyReference) {
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
+                    // tips: allowEarlyReference -> 是否创建对象
+                    //  ObjectFactory是spring创建对象的回调，spring所有有bean的创建过程，在封装在ObjectFactory.getObject()方法里
 					if (singletonFactory != null) {
 						singletonObject = singletonFactory.getObject();
+                        // tips: 因为是单例，创建对象保存到earlySingletonObjects后，创建对象的回调就可以从singletonFactories移除
 						this.earlySingletonObjects.put(beanName, singletonObject);
 						this.singletonFactories.remove(beanName);
 					}
@@ -212,6 +218,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				if (logger.isDebugEnabled()) {
 					logger.debug("Creating shared instance of singleton bean '" + beanName + "'");
 				}
+				// tips: 标记对象正在创建中
 				beforeSingletonCreation(beanName);
 				boolean newSingleton = false;
 				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
@@ -219,6 +226,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
+				    // tips: 回调ObjectFactory的方法创建bean实例
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true;
 				}
@@ -242,9 +250,14 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (recordSuppressedExceptions) {
 						this.suppressedExceptions = null;
 					}
+                    // tips: 去掉对象正在创建中的标记
 					afterSingletonCreation(beanName);
 				}
+
 				if (newSingleton) {
+                    // tips: 1.将创建好有单例bean保存至集合registeredSingletons、registeredSingletons中
+                    //       2.并从集合singletonFactories移除对应的ObjectFactory,如果存在
+                    //       3.并从集合earlySingletonObjects移除单例bean,如果存在
 					addSingleton(beanName, singletonObject);
 				}
 			}
