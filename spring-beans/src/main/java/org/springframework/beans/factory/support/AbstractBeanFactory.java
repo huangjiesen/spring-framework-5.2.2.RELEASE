@@ -1483,6 +1483,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			throws CannotLoadBeanClassException {
 
 		try {
+		    // tips: 如果已经有Class对象，则直接返回
 			if (mbd.hasBeanClass()) {
 				return mbd.getBeanClass();
 			}
@@ -1514,6 +1515,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		ClassLoader dynamicLoader = beanClassLoader;
 		boolean freshResolve = false;
 
+		// tips: 类加载器处理
 		if (!ObjectUtils.isEmpty(typesToMatch)) {
 			// When just doing type checks (i.e. not creating an actual instance yet),
 			// use the specified temporary class loader (e.g. in a weaving scenario).

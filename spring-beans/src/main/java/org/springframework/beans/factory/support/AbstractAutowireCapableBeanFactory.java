@@ -486,6 +486,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Make sure bean class is actually resolved at this point, and
 		// clone the bean definition in case of a dynamically resolved Class
 		// which cannot be stored in the shared merged bean definition.
+        // tips: 解析class，如果没有类对象，则将全类名通过Class.forName的方式转为Class对象
 		Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
 		if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
 			mbdToUse = new RootBeanDefinition(mbd);
@@ -559,9 +560,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Instantiate the bean.
 		BeanWrapper instanceWrapper = null;
 		if (mbd.isSingleton()) {
+		    // tips: 如果是单例bean,判断factoryBeanInstanceCache缓存中是否存在
 			instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
 		}
 		if (instanceWrapper == null) {
+		    // tips: 实例化bean
 			instanceWrapper = createBeanInstance(beanName, mbd, args);
 		}
 		final Object bean = instanceWrapper.getWrappedInstance();
@@ -1174,24 +1177,32 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	protected BeanWrapper createBeanInstance(String beanName, RootBeanDefinition mbd, @Nullable Object[] args) {
 		// Make sure bean class is actually resolved at this point.
+        // tips: 解析class
 		Class<?> beanClass = resolveBeanClass(mbd, beanName);
 
+		// tips: 检查这个类的访问权限
 		if (beanClass != null && !Modifier.isPublic(beanClass.getModifiers()) && !mbd.isNonPublicAccessAllowed()) {
 			throw new BeanCreationException(mbd.getResourceDescription(), beanName,
 					"Bean class isn't public, and non-public access not allowed: " + beanClass.getName());
 		}
 
+        // tips: 通过回调来创建bean的实例，如果有的话
 		Supplier<?> instanceSupplier = mbd.getInstanceSupplier();
 		if (instanceSupplier != null) {
 			return obtainFromSupplier(instanceSupplier, beanName);
 		}
 
+        // tips: 如果工厂方法不为空，通过工厂方法构建bean对象
+        //  1. 处理基于xml的配置<bean id="xxx" class="xxx.xxx.xxxFactory" factory-method="getxxx">
+        //  2. 处理配置类中的 @Bean 方法，{@see ConfigurationClassBeanDefinitionReader.loadBeanDefinitionsForBeanMethod 的beanDef.setUniqueFactoryMethodName(methodName);}
 		if (mbd.getFactoryMethodName() != null) {
 			return instantiateUsingFactoryMethod(beanName, mbd, args);
 		}
 
 		// Shortcut when re-creating the same bean...
+        // tips: 是否有构造方法
 		boolean resolved = false;
+		// tips: 是否为有参构造方法
 		boolean autowireNecessary = false;
 		if (args == null) {
 			synchronized (mbd.constructorArgumentLock) {
@@ -1203,14 +1214,18 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 		if (resolved) {
 			if (autowireNecessary) {
+			    // tips: 通过有参构造方法实例化bean
 				return autowireConstructor(beanName, mbd, null, null);
 			}
 			else {
+                // tips: 通过无参构造方法实例化bean
 				return instantiateBean(beanName, mbd);
 			}
 		}
 
 		// Candidate constructors for autowiring?
+        // tips: 通过后置处理器AutowiredAnnotationBeanPostProcessor获取构造函数
+        //      此后置处理器是spring手动注册的6大类之1
 		Constructor<?>[] ctors = determineConstructorsFromBeanPostProcessors(beanClass, beanName);
 		if (ctors != null || mbd.getResolvedAutowireMode() == AUTOWIRE_CONSTRUCTOR ||
 				mbd.hasConstructorArgumentValues() || !ObjectUtils.isEmpty(args)) {
@@ -1218,12 +1233,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Preferred constructors for default construction?
+        // tips: 默认构造的首选构造函数
 		ctors = mbd.getPreferredConstructors();
 		if (ctors != null) {
 			return autowireConstructor(beanName, mbd, ctors, null);
 		}
 
 		// No special handling: simply use no-arg constructor.
+        // tips: 默认构造无参构造函数
 		return instantiateBean(beanName, mbd);
 	}
 
