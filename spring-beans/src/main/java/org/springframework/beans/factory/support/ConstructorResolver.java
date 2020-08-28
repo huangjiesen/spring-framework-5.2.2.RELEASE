@@ -125,22 +125,29 @@ class ConstructorResolver {
 	public BeanWrapper autowireConstructor(String beanName, RootBeanDefinition mbd,
 			@Nullable Constructor<?>[] chosenCtors, @Nullable Object[] explicitArgs) {
 
+	    // tips: 创建bean的包装器
 		BeanWrapperImpl bw = new BeanWrapperImpl();
 		this.beanFactory.initBeanWrapper(bw);
 
+		// tips: 要使用的构造函数
 		Constructor<?> constructorToUse = null;
+		// tips: 参数封装类
 		ArgumentsHolder argsHolderToUse = null;
+		// tips: 要使用的参数
 		Object[] argsToUse = null;
 
+		// tips: 判断入参不等于空则使用
 		if (explicitArgs != null) {
 			argsToUse = explicitArgs;
 		}
 		else {
 			Object[] argsToResolve = null;
 			synchronized (mbd.constructorArgumentLock) {
+			    // tips: RootBeanDefinition 中是否有已解析好的构造函数或工厂方法
 				constructorToUse = (Constructor<?>) mbd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse != null && mbd.constructorArgumentsResolved) {
 					// Found a cached constructor...
+                    // tips: RootBeanDefinition 中是否有已解析好的构造函参数
 					argsToUse = mbd.resolvedConstructorArguments;
 					if (argsToUse == null) {
 						argsToResolve = mbd.preparedConstructorArguments;
