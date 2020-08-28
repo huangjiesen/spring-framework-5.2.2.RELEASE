@@ -611,7 +611,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Initialize the bean instance.
 		Object exposedObject = bean;
 		try {
-		    // tips: 自动装配处理，属性依赖注入
+		    // tips: 自动装配处理，属性依赖注入处理 -> @Autowired,@Value
+            //       具体实现通过后置处理器 AutowiredAnnotationBeanPostProcessor.postProcessProperties(PropertyValues pvs, Object bean, String beanName) 的回调实现
 			populateBean(beanName, mbd, instanceWrapper);
 
 			// tips: 初始化bean
@@ -1437,10 +1438,12 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Give any InstantiationAwareBeanPostProcessors the opportunity to modify the
 		// state of the bean before properties are set. This can be used, for example,
 		// to support styles of field injection.
+        // tips: 设置属性依赖之前的后置处理器回调，InstantiationAwareBeanPostProcessor#postProcessAfterInstantiation
 		if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 			for (BeanPostProcessor bp : getBeanPostProcessors()) {
 				if (bp instanceof InstantiationAwareBeanPostProcessor) {
 					InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;
+					// tips: 只要其中一个返回false,则不进行依赖设置，直接return，不执行后续代码
 					if (!ibp.postProcessAfterInstantiation(bw.getWrappedInstance(), beanName)) {
 						return;
 					}
