@@ -147,14 +147,16 @@ class ConstructorResolver {
 				constructorToUse = (Constructor<?>) mbd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse != null && mbd.constructorArgumentsResolved) {
 					// Found a cached constructor...
-                    // tips: RootBeanDefinition 中是否有已解析好的构造函参数
+                    // tips: RootBeanDefinition 中是否有已解析好的构造函参数入参
 					argsToUse = mbd.resolvedConstructorArguments;
 					if (argsToUse == null) {
+					    // tips: 参数解析器
 						argsToResolve = mbd.preparedConstructorArguments;
 					}
 				}
 			}
 			if (argsToResolve != null) {
+                // tips: 参数解析器解析参数
 				argsToUse = resolvePreparedArguments(beanName, mbd, bw, constructorToUse, argsToResolve, true);
 			}
 		}
@@ -165,6 +167,7 @@ class ConstructorResolver {
 			if (candidates == null) {
 				Class<?> beanClass = mbd.getBeanClass();
 				try {
+				    // tips: 如果上面获取不到解析好的缓存起来的构造函数，入参也没传入，则通过class对象获取构造函数
 					candidates = (mbd.isNonPublicAccessAllowed() ?
 							beanClass.getDeclaredConstructors() : beanClass.getConstructors());
 				}
@@ -176,7 +179,9 @@ class ConstructorResolver {
 			}
 
 			if (candidates.length == 1 && explicitArgs == null && !mbd.hasConstructorArgumentValues()) {
+                // tips: 只有一个构造函数时，直接取胜
 				Constructor<?> uniqueCandidate = candidates[0];
+			    // tips: 如果是一个无参构造函数，直接实例化
 				if (uniqueCandidate.getParameterCount() == 0) {
 					synchronized (mbd.constructorArgumentLock) {
 						mbd.resolvedConstructorOrFactoryMethod = uniqueCandidate;
@@ -189,6 +194,7 @@ class ConstructorResolver {
 			}
 
 			// Need to resolve the constructor.
+            // tips: 是否为构造函数自动装配
 			boolean autowiring = (chosenCtors != null ||
 					mbd.getResolvedAutowireMode() == AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR);
 			ConstructorArgumentValues resolvedValues = null;
@@ -203,6 +209,9 @@ class ConstructorResolver {
 				minNrOfArgs = resolveConstructorArguments(beanName, mbd, bw, cargs, resolvedValues);
 			}
 
+			// tips: 下面的代码是找一个满足构造函数的入参，且与入参差异最少的一个
+
+            // tips: 对构造函数进行排序，先排修饰符再排参数个数
 			AutowireUtils.sortConstructors(candidates);
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			Set<Constructor<?>> ambiguousConstructors = null;

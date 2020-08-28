@@ -611,7 +611,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Initialize the bean instance.
 		Object exposedObject = bean;
 		try {
-		    // tips: 属性依赖注入
+		    // tips: 自动装配处理，属性依赖注入
 			populateBean(beanName, mbd, instanceWrapper);
 
 			// tips: 初始化bean
@@ -1812,6 +1812,15 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 
 	/**
+     * tips: 初始化bean
+     *  1. 判断是否为BeanNameAware、BeanClassLoaderAware、BeanFactoryAware这三个接口的实现，是则回调接口实现方法
+     *  2. 回调所有后置处理器 BeanPostProcessor#postProcessBeforeInitialization(Object bean, String beanName) 初始化前置处理
+     *      2.1  其中一个BeanPostProcessor实现是CommonAnnotationBeanPostProcessor，处理@PostConstruct,@PreDestroy注解方法的回调
+     *  3. 调用两种初始化方法
+     *      3.1. 如果实现了 InitializingBean 接口，则回调其 afterPropertiesSet 方法
+     *      3.2. 调用@Bean注解配置的初始化方法，或调用通过xml配置的bean的初始化方法
+     *  4. 回调所有后置处理器 BeanPostProcessor#postProcessAfterInitialization(Object bean, String beanName)  初始化后置处理
+     *
 	 * Initialize the given bean instance, applying factory callbacks
 	 * as well as init methods and bean post processors.
 	 * <p>Called from {@link #createBean} for traditionally defined beans,
